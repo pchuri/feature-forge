@@ -23,6 +23,7 @@ dependencies = [
     "numpy>=1.26",
     "scikit-learn>=1.4",
     "sentence-transformers>=2.7",
+    "google-play-scraper>=1.2.7",
 ]
 
 [project.optional-dependencies]
