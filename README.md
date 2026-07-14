@@ -13,11 +13,19 @@ and it produces a Markdown **opportunity report**: the dominant pain-point
 clusters, how frequent and how negative each one is, representative quotes, and a
 heuristic verdict on whether your idea is supported by the data.
 
-> **MVP scope.** Feature Forge works on **local input files** only. App Store /
-> Google Play scraping is intentionally out of scope for now. All analysis runs
-> locally — **no paid LLM API is called.** Cluster summaries are extractive
-> (top keywords + reviews closest to the cluster centroid + simple heuristic
-> labels). LLM-based summarization can be layered on later.
+> **Scope.** Feature Forge can analyze a **local file** *or* **fetch reviews
+> straight from an app store** (Google Play / App Store) so you never have to
+> build a CSV by hand. All analysis runs locally — **no paid LLM API is
+> called.** Cluster summaries are extractive (top keywords + reviews closest to
+> the cluster centroid + simple heuristic labels). LLM-based summarization can be
+> layered on later.
+>
+> **App Store note.** App resolution (name → id) works, but Apple's public
+> customer-reviews RSS endpoint currently returns **empty for all apps** — a
+> known Apple-side limitation that affects every tool built on it, including the
+> popular scraping libraries. Google Play fetching is fully functional today; the
+> App Store fetcher will return data automatically if/when Apple restores the
+> feed. For App Store analysis in the meantime, supply a saved file.
 
 ## How it works
 
@@ -30,7 +38,9 @@ reviews.csv ──► load ──► clean ──► embed ──► cluster ─
                                                         opportunity score
 ```
 
-1. **Load** reviews from a CSV or JSON file.
+1. **Load** reviews from a CSV/JSON file **or fetch** them from a store
+   (Google Play via `google-play-scraper`; App Store via Apple's iTunes Search
+   API + reviews feed).
 2. **Clean**: drop empty bodies, duplicates, and reviews under 10 characters.
 3. **Embed** review text with [`sentence-transformers`](https://www.sbert.net/)
    (`all-MiniLM-L6-v2`, downloaded on first run).
@@ -65,18 +75,56 @@ uv run feature-forge analyze examples/reviews.csv \
 
 Open `report.md` to see the generated opportunity report.
 
+## Analyze a real app (no CSV needed)
+
+Point Feature Forge at an app by **name** — it resolves the store id, downloads
+reviews, and analyzes them in one step. You never touch a CSV:
+
+```bash
+uv run feature-forge analyze \
+  --store google-play \
+  --app "WhatsApp" \
+  --reviews 500 \
+  --idea "A privacy-first messaging app" \
+  --save whatsapp_reviews.csv   # optional: keep the raw reviews
+```
+
+You can also pass an explicit store id instead of a name (e.g.
+`--app com.whatsapp` for Google Play, `--app 310633997` for the App Store).
+
+To only download reviews (no analysis), use `fetch`:
+
+```bash
+uv run feature-forge fetch google-play "WhatsApp" --count 500 --output reviews.csv
+```
+
 ### CLI
 
+**`analyze`** — build an opportunity report from a file or a store:
+
 ```
-feature-forge analyze REVIEWS --idea "<your idea>" [--output report.md] [--clusters 10]
+feature-forge analyze [REVIEWS] --idea "<idea>" [--store <store> --app <name|id>] [options]
 ```
 
 | Option | Alias | Default | Description |
 | --- | --- | --- | --- |
-| `REVIEWS` | | — | Path to a `.csv`, `.json` or `.jsonl` reviews file (required). |
+| `REVIEWS` | | — | Path to a `.csv`/`.json`/`.jsonl` file. Omit when using `--store`. |
 | `--idea` | `-i` | — | The product idea to validate (required). |
+| `--store` | `-s` | — | `google-play` or `app-store` — fetch instead of reading a file. |
+| `--app` | | — | App name (auto-searched) or store id. Required with `--store`. |
+| `--reviews` | `-n` | `500` | Max reviews to fetch. |
+| `--country` | | `us` | Store country/locale code. |
+| `--save` | | — | Also save the fetched raw reviews to this `.csv`/`.json`. |
 | `--output` | `-o` | `report.md` | Where to write the Markdown report. |
 | `--clusters` | `-k` | `10` | Number of KMeans clusters to request. |
+
+Provide **either** a `REVIEWS` file **or** `--store`/`--app`, not both.
+
+**`fetch`** — download reviews to a file (no analysis):
+
+```
+feature-forge fetch <store> <APP> [--count 500] [--country us] [--output reviews.csv]
+```
 
 ## Input format
 
@@ -111,10 +159,12 @@ download any model** and run offline.
 
 ```
 src/feature_forge/
-  cli.py              # Typer CLI (the `feature-forge analyze` command)
+  cli.py              # Typer CLI (the `analyze` and `fetch` commands)
   analysis.py         # orchestration: summary + embed/cluster/score
   models.py           # Pydantic models (Review, ClusterResult, ...)
-  loaders/            # csv_loader, json_loader
+  export.py           # save reviews back to CSV/JSON (--save / fetch)
+  loaders/            # csv_loader, json_loader (file input)
+  fetchers/           # google_play, apple_app_store (store input) + name search
   pipeline/           # clean, embed, cluster, score
   report/             # markdown renderer
 tests/                # pytest suite
