@@ -2,8 +2,20 @@
 
 **Validate product ideas against real user pain points mined from app reviews.**
 
-Feature Forge is a CLI tool for indie developers. Instead of generating random
-startup ideas, it helps you answer a sharper question:
+> Modern AI makes writing code easy; the hard part is deciding **what** to
+> build. Feature Forge is a **product research engine — not an idea generator** —
+> that helps founders answer *"What should I spend the next six months
+> building?"* with evidence rather than intuition.
+>
+> **Evidence first, ideas second.** Never invent demand; every conclusion must
+> cite user evidence. **Absence of evidence is also evidence.** Success is not
+> finding ideas — it is **eliminating bad ideas before they are built**, and
+> sometimes the right answer is *"do not build this."*
+>
+> 📖 [VISION](docs/VISION.md) · [PRINCIPLES](docs/PRINCIPLES.md) · [ROADMAP](docs/ROADMAP.md)
+
+Feature Forge is a CLI tool for indie developers. Concretely, it helps you
+answer a sharper question:
 
 > *Is this product idea actually supported by real pain points that users are
 > already complaining about?*
