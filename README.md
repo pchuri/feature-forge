@@ -1,6 +1,7 @@
 # Feature Forge
 
-**Validate product ideas against real user pain points mined from app reviews.**
+**Feature Forge helps founders decide what _not_ to build — using evidence from
+real users.**
 
 > Modern AI makes writing code easy; the hard part is deciding **what** to
 > build. Feature Forge is a **product research engine — not an idea generator** —

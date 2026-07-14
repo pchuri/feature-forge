@@ -18,6 +18,22 @@ An idea with no supporting evidence is not a weak opportunity — it is a
 non-opportunity. Feature Forge does not manufacture demand to make a report look
 useful.
 
+## Reject by default
+
+```
+Find opportunity → Reject markets.
+```
+
+Feature Forge behaves like a venture capitalist: it says **no** to almost
+everything. A VC rejects ~99% of what they see, and a good screen is judged by
+the bad bets it avoids, not the deals it finds. The default verdict is
+**AVOID** — a market must *earn* a BUILD.
+
+**False positives are worse than false negatives.** Missing a good market costs
+a founder nothing they can see. Recommending a bad market costs them six months.
+When in doubt, reject. Every AI tool is happy to say *"great idea!"*; Feature
+Forge's value is that it will say *"do not build this."*
+
 ## Every opportunity must be scored on eight dimensions
 
 An opportunity is only real if it can be evaluated across all of these:
@@ -34,6 +50,20 @@ An opportunity is only real if it can be evaluated across all of these:
 | **Confidence**       | How much should we trust the answer above?           |
 
 A high score on one dimension never excuses a missing one.
+
+## Broken markets over big markets
+
+```
+Big market → usually No.
+Small, technically broken market → often Yes.
+```
+
+A large market is not an opportunity; it is a crowd of competitors. The best
+opportunities are **small, technically broken markets** — narrow niches where
+users feel real, specific, unaddressed pain (think obscure file formats, viewers,
+converters, one-off developer tooling). Market Size is one dimension of eight,
+not the goal. Feature Forge should be *more* interested in a tiny market full of
+angry users than a huge market full of satisfied ones.
 
 ## Negative space is evidence
 
