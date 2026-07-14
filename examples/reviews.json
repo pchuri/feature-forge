@@ -1,0 +1,34 @@
+[
+  {
+    "rating": 1,
+    "title": "Too many ads",
+    "body": "Every conversion is interrupted by a full screen video ad. Completely unusable.",
+    "date": "2026-01-06",
+    "app_name": "PhotoConvert",
+    "locale": "en-US"
+  },
+  {
+    "rating": 2,
+    "title": "Slow PDF export",
+    "body": "Converting a PDF to images takes far too long and sometimes just hangs.",
+    "date": "2026-02-15",
+    "app_name": "PDFMagic",
+    "locale": "en-US"
+  },
+  {
+    "rating": 1,
+    "title": "No HEIC",
+    "body": "It cannot open HEIC photos from my iPhone which defeats the whole purpose.",
+    "date": "2026-03-11",
+    "app_name": "ImageTool",
+    "locale": "en-US"
+  },
+  {
+    "rating": 5,
+    "title": "Works great",
+    "body": "Quick and simple for turning screenshots into a single PDF. No issues at all.",
+    "date": "2026-02-12",
+    "app_name": "PhotoConvert",
+    "locale": "en-GB"
+  }
+]

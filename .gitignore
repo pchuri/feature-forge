@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+
+# uv
+uv.lock
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Model / HF caches downloaded at runtime
+.cache/
+
+# Generated reports
+report.md
+*.report.md
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

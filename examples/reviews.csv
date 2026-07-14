@@ -1,0 +1,29 @@
+rating,title,body,date,app_name,locale
+1,Too many ads,Every time I convert a file I get hit with three full screen ads. It is unusable now.,2026-01-05,PhotoConvert,en-US
+1,Ads everywhere,The app is buried in ads. I cannot even tap a button without an ad popping up first.,2026-01-11,PhotoConvert,en-US
+2,Ad overload,Would be five stars but the constant video ads before every conversion drive me crazy.,2026-02-02,ImageTool,en-GB
+1,Painfully slow,Converting a single PDF to images takes almost a minute. My old app did it instantly.,2026-01-18,PDFMagic,en-US
+2,So slow,The conversion is extremely slow on large PDFs. It froze twice while processing.,2026-02-14,PDFMagic,en-US
+1,Slow and laggy,Batch conversion is so slow that I gave up and did it on my laptop instead.,2026-03-01,PDFMagic,en-US
+2,PDF pages missing,When I convert a PDF to images it only exports the first page. The rest are gone.,2026-01-22,PDFMagic,en-US
+1,Broken PDF export,PDF to image conversion produces blurry low resolution images. Text is unreadable.,2026-02-20,PDFMagic,en-US
+3,Decent PDF tool,Turning PDFs into PNGs works but I wish I could pick the output resolution.,2026-03-10,PDFMagic,en-US
+1,No batch support,I have 200 photos to compress and I have to do them one by one. Please add batch mode.,2026-01-15,ImageTool,en-US
+2,Batch please,Great app but there is no way to process multiple images at once. Huge time waster.,2026-02-08,ImageTool,en-GB
+2,Bulk conversion needed,I need to convert whole folders at once and this only does one file at a time.,2026-03-05,PhotoConvert,en-US
+1,HEIC not supported,It refuses to open my iPhone HEIC photos. Says unsupported format every time.,2026-01-28,ImageTool,en-US
+2,HEIC problems,Cannot convert HEIC to JPG which is the only reason I downloaded this app.,2026-02-17,ImageTool,en-US
+1,No HEIC,Please support HEIC files. All my iPhone photos are HEIC and this app ignores them.,2026-03-12,PhotoConvert,en-US
+2,Compression ruins quality,The image compression makes everything look terrible even on the high quality setting.,2026-01-30,ImageTool,en-US
+3,Compression is okay,Compression works to shrink file size but there is no preview before I save.,2026-02-22,ImageTool,en-GB
+2,Files too big,The compressed images are barely smaller than the originals. Not much compression at all.,2026-03-08,ImageTool,en-US
+1,Cannot share,There is no way to share the converted file directly to email or messaging apps.,2026-02-01,PhotoConvert,en-US
+2,Sharing broken,The share button does nothing. I have to dig through my files to find the output.,2026-02-25,PhotoConvert,en-GB
+2,No cloud sharing,Wish I could share straight to Google Drive instead of saving then uploading manually.,2026-03-15,ImageTool,en-US
+5,Love it,Simple and does exactly what I need for quick JPG conversions. No complaints.,2026-01-09,ImageTool,en-US
+5,Great app,Fast and clean interface for converting my screenshots to PDF. Works perfectly.,2026-02-11,PhotoConvert,en-US
+4,Pretty good,Does the job for basic conversions. Would love more format options down the line.,2026-03-03,ImageTool,en-GB
+4,Solid,Reliable for everyday image resizing. Has not crashed on me once in months of use.,2026-03-18,ImageTool,en-US
+1,Crashes constantly,The app crashes every single time I try to open a file larger than ten megabytes.,2026-01-20,PDFMagic,en-US
+1,Keeps crashing,Crashed three times while converting a batch of photos. Lost all my progress.,2026-02-27,PhotoConvert,en-US
+2,Unstable,It crashes when I try to compress and share at the same time. Very frustrating.,2026-03-20,ImageTool,en-GB
