@@ -13,7 +13,16 @@ real users.**
 > finding ideas — it is **eliminating bad ideas before they are built**, and
 > sometimes the right answer is *"do not build this."*
 >
-> 📖 [VISION](docs/VISION.md) · [PRINCIPLES](docs/PRINCIPLES.md) · [ROADMAP](docs/ROADMAP.md)
+> 📖 [VISION](docs/VISION.md) · [PRINCIPLES](docs/PRINCIPLES.md) · [ROADMAP](docs/ROADMAP.md) ·
+> [PUBLICATION POLICY](docs/PUBLICATION_POLICY.md) · [REDDIT PROTOCOL](docs/REDDIT_RESEARCH_PROTOCOL.md)
+
+> **Feature Forge is not a startup idea generator.**
+> **It is a research methodology.**
+> **The code is open. The product decisions are intentionally private.**
+>
+> The engine, the scoring, and the research protocols are all here. The
+> market reports they produce stay out of the repo — *publish the telescope,
+> keep the star charts* ([why](docs/PUBLICATION_POLICY.md)).
 
 Feature Forge is a CLI tool for indie developers. Concretely, it helps you
 answer a sharper question:
@@ -39,6 +48,21 @@ heuristic verdict on whether your idea is supported by the data.
 > popular scraping libraries. Google Play fetching is fully functional today; the
 > App Store fetcher will return data automatically if/when Apple restores the
 > feed. For App Store analysis in the meantime, supply a saved file.
+
+## Case study: one yes, forty nos
+
+Has anyone actually used this? Yes — Feature Forge picked its own first
+product. The pipeline **rejected 40+ markets** with cited evidence, said
+yes to exactly one, and that product went from research to release
+candidate inside the timebox the evidence prescribed:
+
+```
+Market X  →  Evidence  →  Decision  →  Outcome
+```
+
+**→ [How Feature Forge picked its first product](case-studies/svg-forge-public.md)**
+(real methodology and scores; market masked per the
+[publication policy](docs/PUBLICATION_POLICY.md))
 
 ## How it works
 
