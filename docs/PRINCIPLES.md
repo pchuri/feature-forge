@@ -78,6 +78,30 @@ loudly present in the data. Feature Forge treats **what users never complain
 about, never request, and never mention** as a first-class signal. Silence
 about a "hot" idea is often the most valuable thing the research can tell you.
 
+## Cross-channel evidence
+
+```
+Play reviews tell you what broke.
+Reddit tells you who, why, and what they did instead.
+Different questions — never substitutes.
+```
+
+Store reviews and community discussions answer **different questions**. Play
+reviews validate app breakage, frequency, and monetization — at volume, from
+people who installed something. Reddit validates personas, jobs-to-be-done,
+workflows, and *non-consumption* — the people who never installed anything.
+
+The **strongest evidence Feature Forge can produce is agreement across both
+channels**: a pain that shows up independently in review clusters and in
+community threads deserves more confidence than either source alone.
+
+**Divergence between channels is a finding, not an error.** When Play says
+"users pay" and Reddit says "users never would," the usual explanation is
+that the two channels sample different populations of the same market —
+that segmentation is itself a research result. Explain a divergence before
+acting on either side of it; an unexplained divergence is recorded as an
+open risk. (Manual method: [REDDIT_RESEARCH_PROTOCOL.md](REDDIT_RESEARCH_PROTOCOL.md).)
+
 ## Determinism over cleverness
 
 The engine that produces evidence must be **reproducible and auditable**. Given

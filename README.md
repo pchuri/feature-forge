@@ -13,7 +13,16 @@ real users.**
 > finding ideas — it is **eliminating bad ideas before they are built**, and
 > sometimes the right answer is *"do not build this."*
 >
-> 📖 [VISION](docs/VISION.md) · [PRINCIPLES](docs/PRINCIPLES.md) · [ROADMAP](docs/ROADMAP.md)
+> 📖 [VISION](docs/VISION.md) · [PRINCIPLES](docs/PRINCIPLES.md) · [ROADMAP](docs/ROADMAP.md) ·
+> [PUBLICATION POLICY](docs/PUBLICATION_POLICY.md) · [REDDIT PROTOCOL](docs/REDDIT_RESEARCH_PROTOCOL.md)
+
+> **Feature Forge is not a startup idea generator.**
+> **It is a research methodology.**
+> **The code is open. The product decisions are intentionally private.**
+>
+> The engine, the scoring, and the research protocols are all here. The
+> market reports they produce stay out of the repo — *publish the telescope,
+> keep the star charts* ([why](docs/PUBLICATION_POLICY.md)).
 
 Feature Forge is a CLI tool for indie developers. Concretely, it helps you
 answer a sharper question:
@@ -25,6 +34,45 @@ You point it at a file of existing app reviews (CSV or JSON), give it your idea,
 and it produces a Markdown **opportunity report**: the dominant pain-point
 clusters, how frequent and how negative each one is, representative quotes, and a
 heuristic verdict on whether your idea is supported by the data.
+
+## Case study: one yes, forty nos
+
+Has anyone actually used this? Yes — Feature Forge picked its own first
+product. The pipeline **rejected 40+ markets** with cited evidence, said
+yes to exactly one, and that product went from research to release
+candidate inside the timebox the evidence prescribed:
+
+```
+Market X  →  Evidence  →  Decision  →  Outcome
+```
+
+**→ [How Feature Forge picked its first product](case-studies/svg-forge-public.md)**
+(real methodology and scores; market masked per the
+[publication policy](docs/PUBLICATION_POLICY.md))
+
+## Quick start
+
+Feature Forge uses [uv](https://docs.astral.sh/uv/). With the repo cloned:
+
+```bash
+uv sync
+```
+
+(Python 3.12+ is required; `uv` will fetch it if needed.)
+
+A bundled **synthetic** example dataset (`examples/reviews.csv`) contains ~28
+reviews about image/PDF conversion apps — ads, slow conversions, missing batch
+mode, format support, sharing, compression quality, and crashes:
+
+```bash
+uv run feature-forge analyze examples/reviews.csv \
+  --idea "PDF to Image converter" \
+  --output report.md
+```
+
+Open `report.md` to see the generated opportunity report.
+
+## Analyze a real app (no CSV needed)
 
 > **Scope.** Feature Forge can analyze a **local file** *or* **fetch reviews
 > straight from an app store** (Google Play / App Store) so you never have to
@@ -39,56 +87,6 @@ heuristic verdict on whether your idea is supported by the data.
 > popular scraping libraries. Google Play fetching is fully functional today; the
 > App Store fetcher will return data automatically if/when Apple restores the
 > feed. For App Store analysis in the meantime, supply a saved file.
-
-## How it works
-
-```
-reviews.csv ──► load ──► clean ──► embed ──► cluster ──► score ──► report.md
-                          │          │          │           │
-                    drop empty,  sentence-   KMeans     frequency,
-                    short, dupes transformers (k=10)    avg rating,
-                                                        negative ratio,
-                                                        opportunity score
-```
-
-1. **Load** reviews from a CSV/JSON file **or fetch** them from a store
-   (Google Play via `google-play-scraper`; App Store via Apple's iTunes Search
-   API + reviews feed).
-2. **Clean**: drop empty bodies, duplicates, and reviews under 10 characters.
-3. **Embed** review text with [`sentence-transformers`](https://www.sbert.net/)
-   (`all-MiniLM-L6-v2`, downloaded on first run).
-4. **Cluster** similar reviews with KMeans (default `k=10`).
-5. **Score** each cluster: frequency, average rating, negative-review ratio, and
-   a heuristic opportunity score (0–100) blending how *common* and how *painful*
-   the cluster is.
-6. **Report**: render a Markdown opportunity report.
-
-## Install
-
-Feature Forge uses [uv](https://docs.astral.sh/uv/). With the repo cloned:
-
-```bash
-uv sync
-```
-
-This creates a virtual environment and installs Feature Forge plus its
-dependencies. (Python 3.12+ is required; `uv` will fetch it if needed.)
-
-## Run the sample
-
-A bundled example dataset (`examples/reviews.csv`) contains ~28 reviews about
-image/PDF conversion apps — ads, slow conversions, missing batch mode, HEIC
-support, sharing, compression quality, and crashes.
-
-```bash
-uv run feature-forge analyze examples/reviews.csv \
-  --idea "PDF to Image converter" \
-  --output report.md
-```
-
-Open `report.md` to see the generated opportunity report.
-
-## Analyze a real app (no CSV needed)
 
 Point Feature Forge at an app by **name** — it resolves the store id, downloads
 reviews, and analyzes them in one step. You never touch a CSV:
@@ -139,6 +137,29 @@ Provide **either** a `REVIEWS` file **or** `--store`/`--app`, not both.
 feature-forge fetch <store> <APP> [--count 500] [--country us] [--output reviews.csv]
 ```
 
+## How it works
+
+```
+reviews.csv ──► load ──► clean ──► embed ──► cluster ──► score ──► report.md
+                          │          │          │           │
+                    drop empty,  sentence-   KMeans     frequency,
+                    short, dupes transformers (k=10)    avg rating,
+                                                        negative ratio,
+                                                        opportunity score
+```
+
+1. **Load** reviews from a CSV/JSON file **or fetch** them from a store
+   (Google Play via `google-play-scraper`; App Store via Apple's iTunes Search
+   API + reviews feed).
+2. **Clean**: drop empty bodies, duplicates, and reviews under 10 characters.
+3. **Embed** review text with [`sentence-transformers`](https://www.sbert.net/)
+   (`all-MiniLM-L6-v2`, downloaded on first run).
+4. **Cluster** similar reviews with KMeans (default `k=10`).
+5. **Score** each cluster: frequency, average rating, negative-review ratio, and
+   a heuristic opportunity score (0–100) blending how *common* and how *painful*
+   the cluster is.
+6. **Report**: render a Markdown opportunity report.
+
 ## Input format
 
 CSV files must include a `rating` and `body` column. Other columns are optional.
@@ -155,6 +176,14 @@ CSV files must include a `rating` and `body` column. Other columns are optional.
 JSON input can be either a top-level array of review objects or an object with a
 `{"reviews": [...]}` array (see `examples/reviews.json`). `.jsonl` (one JSON
 object per line) is also supported.
+
+## Contributing: research questions over feature requests
+
+Feature Forge is a research project more than a codebase. Issues are framed
+as **research questions** — hypotheses the methodology should answer (e.g.
+*"How accurate are BUILD predictions?"*) — rather than feature requests. See
+the issue templates and [PRINCIPLES.md](docs/PRINCIPLES.md) (the
+contributor's test).
 
 ## Development
 
@@ -182,6 +211,7 @@ src/feature_forge/
   report/             # markdown renderer
 tests/                # pytest suite
 examples/             # sample review datasets
+case-studies/         # public, market-masked methodology case studies
 ```
 
 ## License
