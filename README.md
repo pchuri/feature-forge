@@ -35,20 +35,6 @@ and it produces a Markdown **opportunity report**: the dominant pain-point
 clusters, how frequent and how negative each one is, representative quotes, and a
 heuristic verdict on whether your idea is supported by the data.
 
-> **Scope.** Feature Forge can analyze a **local file** *or* **fetch reviews
-> straight from an app store** (Google Play / App Store) so you never have to
-> build a CSV by hand. All analysis runs locally — **no paid LLM API is
-> called.** Cluster summaries are extractive (top keywords + reviews closest to
-> the cluster centroid + simple heuristic labels). LLM-based summarization can be
-> layered on later.
->
-> **App Store note.** App resolution (name → id) works, but Apple's public
-> customer-reviews RSS endpoint currently returns **empty for all apps** — a
-> known Apple-side limitation that affects every tool built on it, including the
-> popular scraping libraries. Google Play fetching is fully functional today; the
-> App Store fetcher will return data automatically if/when Apple restores the
-> feed. For App Store analysis in the meantime, supply a saved file.
-
 ## Case study: one yes, forty nos
 
 Has anyone actually used this? Yes — Feature Forge picked its own first
@@ -64,30 +50,7 @@ Market X  →  Evidence  →  Decision  →  Outcome
 (real methodology and scores; market masked per the
 [publication policy](docs/PUBLICATION_POLICY.md))
 
-## How it works
-
-```
-reviews.csv ──► load ──► clean ──► embed ──► cluster ──► score ──► report.md
-                          │          │          │           │
-                    drop empty,  sentence-   KMeans     frequency,
-                    short, dupes transformers (k=10)    avg rating,
-                                                        negative ratio,
-                                                        opportunity score
-```
-
-1. **Load** reviews from a CSV/JSON file **or fetch** them from a store
-   (Google Play via `google-play-scraper`; App Store via Apple's iTunes Search
-   API + reviews feed).
-2. **Clean**: drop empty bodies, duplicates, and reviews under 10 characters.
-3. **Embed** review text with [`sentence-transformers`](https://www.sbert.net/)
-   (`all-MiniLM-L6-v2`, downloaded on first run).
-4. **Cluster** similar reviews with KMeans (default `k=10`).
-5. **Score** each cluster: frequency, average rating, negative-review ratio, and
-   a heuristic opportunity score (0–100) blending how *common* and how *painful*
-   the cluster is.
-6. **Report**: render a Markdown opportunity report.
-
-## Install
+## Quick start
 
 Feature Forge uses [uv](https://docs.astral.sh/uv/). With the repo cloned:
 
@@ -95,14 +58,11 @@ Feature Forge uses [uv](https://docs.astral.sh/uv/). With the repo cloned:
 uv sync
 ```
 
-This creates a virtual environment and installs Feature Forge plus its
-dependencies. (Python 3.12+ is required; `uv` will fetch it if needed.)
+(Python 3.12+ is required; `uv` will fetch it if needed.)
 
-## Run the sample
-
-A bundled example dataset (`examples/reviews.csv`) contains ~28 reviews about
-image/PDF conversion apps — ads, slow conversions, missing batch mode, HEIC
-support, sharing, compression quality, and crashes.
+A bundled **synthetic** example dataset (`examples/reviews.csv`) contains ~28
+reviews about image/PDF conversion apps — ads, slow conversions, missing batch
+mode, format support, sharing, compression quality, and crashes:
 
 ```bash
 uv run feature-forge analyze examples/reviews.csv \
@@ -113,6 +73,20 @@ uv run feature-forge analyze examples/reviews.csv \
 Open `report.md` to see the generated opportunity report.
 
 ## Analyze a real app (no CSV needed)
+
+> **Scope.** Feature Forge can analyze a **local file** *or* **fetch reviews
+> straight from an app store** (Google Play / App Store) so you never have to
+> build a CSV by hand. All analysis runs locally — **no paid LLM API is
+> called.** Cluster summaries are extractive (top keywords + reviews closest to
+> the cluster centroid + simple heuristic labels). LLM-based summarization can be
+> layered on later.
+>
+> **App Store note.** App resolution (name → id) works, but Apple's public
+> customer-reviews RSS endpoint currently returns **empty for all apps** — a
+> known Apple-side limitation that affects every tool built on it, including the
+> popular scraping libraries. Google Play fetching is fully functional today; the
+> App Store fetcher will return data automatically if/when Apple restores the
+> feed. For App Store analysis in the meantime, supply a saved file.
 
 Point Feature Forge at an app by **name** — it resolves the store id, downloads
 reviews, and analyzes them in one step. You never touch a CSV:
@@ -163,6 +137,29 @@ Provide **either** a `REVIEWS` file **or** `--store`/`--app`, not both.
 feature-forge fetch <store> <APP> [--count 500] [--country us] [--output reviews.csv]
 ```
 
+## How it works
+
+```
+reviews.csv ──► load ──► clean ──► embed ──► cluster ──► score ──► report.md
+                          │          │          │           │
+                    drop empty,  sentence-   KMeans     frequency,
+                    short, dupes transformers (k=10)    avg rating,
+                                                        negative ratio,
+                                                        opportunity score
+```
+
+1. **Load** reviews from a CSV/JSON file **or fetch** them from a store
+   (Google Play via `google-play-scraper`; App Store via Apple's iTunes Search
+   API + reviews feed).
+2. **Clean**: drop empty bodies, duplicates, and reviews under 10 characters.
+3. **Embed** review text with [`sentence-transformers`](https://www.sbert.net/)
+   (`all-MiniLM-L6-v2`, downloaded on first run).
+4. **Cluster** similar reviews with KMeans (default `k=10`).
+5. **Score** each cluster: frequency, average rating, negative-review ratio, and
+   a heuristic opportunity score (0–100) blending how *common* and how *painful*
+   the cluster is.
+6. **Report**: render a Markdown opportunity report.
+
 ## Input format
 
 CSV files must include a `rating` and `body` column. Other columns are optional.
@@ -179,6 +176,14 @@ CSV files must include a `rating` and `body` column. Other columns are optional.
 JSON input can be either a top-level array of review objects or an object with a
 `{"reviews": [...]}` array (see `examples/reviews.json`). `.jsonl` (one JSON
 object per line) is also supported.
+
+## Contributing: research questions over feature requests
+
+Feature Forge is a research project more than a codebase. Issues are framed
+as **research questions** — hypotheses the methodology should answer (e.g.
+*"How accurate are BUILD predictions?"*) — rather than feature requests. See
+the issue templates and [PRINCIPLES.md](docs/PRINCIPLES.md) (the
+contributor's test).
 
 ## Development
 
@@ -206,6 +211,7 @@ src/feature_forge/
   report/             # markdown renderer
 tests/                # pytest suite
 examples/             # sample review datasets
+case-studies/         # public, market-masked methodology case studies
 ```
 
 ## License
