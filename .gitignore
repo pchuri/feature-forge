@@ -25,6 +25,23 @@ uv.lock
 report.md
 *.report.md
 
+# Private research & product work — never publish (see docs/PUBLICATION_POLICY.md)
+research/
+scratchpad/
+products/
+private/
+
+# Credentials / local config
+.env
+.env.*
+
+# Fetched review datasets (real store data stays private;
+# bundled synthetic samples in examples/ are explicitly re-included)
+*.csv
+*.jsonl
+!examples/*.csv
+!examples/*.jsonl
+
 # OS / editor
 .DS_Store
 .idea/
