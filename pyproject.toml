@@ -32,6 +32,9 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
 ]
+openai = [
+    "openai>=1.40",
+]
 
 [project.urls]
 Homepage = "https://github.com/pchuri/feature-forge"
