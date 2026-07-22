@@ -32,6 +32,12 @@ def test_get_fetcher_types() -> None:
     assert isinstance(get_fetcher(Store.APP_STORE), AppStoreFetcher)
 
 
+def test_get_fetcher_passes_lang_to_google_play() -> None:
+    fetcher = get_fetcher(Store.GOOGLE_PLAY, lang="ja")
+    assert isinstance(fetcher, GooglePlayFetcher)
+    assert fetcher.lang == "ja"
+
+
 def test_google_play_to_review() -> None:
     raw = {
         "score": 1,
@@ -124,3 +130,28 @@ def test_google_play_fetch_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
     # 200 on the first page, 50 on the second.
     assert calls[0]["count"] == 200
     assert calls[1]["count"] == 50
+
+
+def test_google_play_fetch_uses_lang(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The fetcher's language must reach the underlying reviews call."""
+    fetcher = GooglePlayFetcher(lang="ja")
+
+    class FakeSort:
+        NEWEST = "newest"
+
+    seen_langs: list[str] = []
+
+    def fake_reviews(app_id, *, lang, country, sort, count, continuation_token):
+        seen_langs.append(lang)
+        return [{"score": 4, "content": "とても使いやすいアプリです", "at": None}], None
+
+    class FakeLib:
+        Sort = FakeSort
+        reviews = staticmethod(fake_reviews)
+
+    monkeypatch.setattr(fetcher, "_lib", lambda: FakeLib)
+
+    match = AppMatch("jp.example", "Example", Store.GOOGLE_PLAY)
+    reviews = fetcher.fetch(match, count=10)
+    assert seen_langs == ["ja"]
+    assert len(reviews) == 1

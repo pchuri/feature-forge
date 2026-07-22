@@ -103,6 +103,20 @@ uv run feature-forge analyze \
 You can also pass an explicit store id instead of a name (e.g.
 `--app com.whatsapp` for Google Play, `--app 310633997` for the App Store).
 
+> **Non-English reviews.** Google Play filters reviews by **language**, not
+> country — `--country jp` alone still returns English reviews. Pass `--lang`
+> to pick the review language, and switch to a multilingual embedding model so
+> clustering stays meaningful (the default `all-MiniLM-L6-v2` is
+> English-focused):
+>
+> ```bash
+> uv run feature-forge analyze \
+>   --store google-play --app "jp.naver.line.android" \
+>   --country jp --lang ja \
+>   --model paraphrase-multilingual-MiniLM-L12-v2 \
+>   --idea "A lightweight chat-only messenger"
+> ```
+
 To only download reviews (no analysis), use `fetch`:
 
 ```bash
@@ -125,6 +139,8 @@ feature-forge analyze [REVIEWS] --idea "<idea>" [--store <store> --app <name|id>
 | `--app` | | — | App name (auto-searched) or store id. Required with `--store`. |
 | `--reviews` | `-n` | `500` | Max reviews to fetch. |
 | `--country` | | `us` | Store country/locale code. |
+| `--lang` | | `en` | Review language for Google Play (e.g. `ja`). Ignored for the App Store. |
+| `--model` | | `all-MiniLM-L6-v2` | sentence-transformers embedding model. Use a multilingual one for non-English reviews. |
 | `--save` | | — | Also save the fetched raw reviews to this `.csv`/`.json`. |
 | `--output` | `-o` | `report.md` | Where to write the Markdown report. |
 | `--clusters` | `-k` | `10` | Number of KMeans clusters to request. |
@@ -134,7 +150,7 @@ Provide **either** a `REVIEWS` file **or** `--store`/`--app`, not both.
 **`fetch`** — download reviews to a file (no analysis):
 
 ```
-feature-forge fetch <store> <APP> [--count 500] [--country us] [--output reviews.csv]
+feature-forge fetch <store> <APP> [--count 500] [--country us] [--lang en] [--output reviews.csv]
 ```
 
 ## How it works
