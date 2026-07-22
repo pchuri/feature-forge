@@ -16,6 +16,7 @@ from feature_forge.loaders import load_reviews
 from feature_forge.models import AnalysisReport, Review
 from feature_forge.pipeline.clean import clean_reviews
 from feature_forge.pipeline.cluster import DEFAULT_N_CLUSTERS
+from feature_forge.pipeline.embed import DEFAULT_MODEL, SentenceTransformerEmbedder
 from feature_forge.report import render_markdown
 
 app = typer.Typer(
@@ -59,6 +60,7 @@ def _gather_reviews(
     app_ref: str | None,
     count: int,
     country: str,
+    lang: str,
     save: Path | None,
 ) -> list[Review]:
     """Load reviews from a file or fetch them from a store, per the given options."""
@@ -77,7 +79,9 @@ def _gather_reviews(
             f"{app_ref!r} from {store}..."
         )
         try:
-            reviews, match = fetch_reviews(store, app_ref, count=count, country=country)
+            reviews, match = fetch_reviews(
+                store, app_ref, count=count, country=country, lang=lang
+            )
         except FetchError as exc:
             console.print(f"[red]Fetch failed:[/red] {exc}")
             raise typer.Exit(code=1) from exc
@@ -154,6 +158,24 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
         "--country",
         help="Store country/locale code used for search and reviews.",
     ),
+    lang: str = typer.Option(
+        "en",
+        "--lang",
+        help=(
+            "Review language code for Google Play (e.g. 'ja'). Google Play "
+            "filters reviews by language, so --country alone does not change "
+            "the review language. Ignored for app-store."
+        ),
+    ),
+    model: str = typer.Option(
+        DEFAULT_MODEL,
+        "--model",
+        help=(
+            "sentence-transformers model used for embedding. For non-English "
+            "reviews use a multilingual model, e.g. "
+            "'paraphrase-multilingual-MiniLM-L12-v2'."
+        ),
+    ),
     save: Path | None = typer.Option(
         None,
         "--save",
@@ -161,7 +183,7 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
     ),
 ) -> None:
     """Analyze reviews (from a file or a store) and write a Markdown report."""
-    reviews = _gather_reviews(input_file, store, app_ref, count, country, save)
+    reviews = _gather_reviews(input_file, store, app_ref, count, country, lang, save)
 
     if not reviews:
         console.print("[red]No usable reviews were obtained. Aborting.[/red]")
@@ -182,7 +204,12 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
         f"[bold]Embedding + clustering[/bold] {len(cleaned)} reviews "
         f"(k={min(clusters, len(cleaned))})... this may download a model on first run."
     )
-    report = analyze(cleaned, idea=idea, n_clusters=clusters)
+    report = analyze(
+        cleaned,
+        idea=idea,
+        n_clusters=clusters,
+        embedder=SentenceTransformerEmbedder(model),
+    )
 
     _print_cluster_table(report)
 
@@ -197,6 +224,14 @@ def fetch_command(
     ),
     count: int = typer.Option(500, "--count", "-n", min=1, help="Max reviews to fetch."),
     country: str = typer.Option("us", "--country", help="Store country/locale code."),
+    lang: str = typer.Option(
+        "en",
+        "--lang",
+        help=(
+            "Review language code for Google Play (e.g. 'ja'). Ignored for "
+            "app-store."
+        ),
+    ),
     output: Path = typer.Option(
         Path("reviews.csv"),
         "--output",
@@ -207,7 +242,9 @@ def fetch_command(
     """Download reviews from a store and save them to a file (no analysis)."""
     console.print(f"[bold]Fetching[/bold] up to {count} reviews for {app_ref!r} from {store}...")
     try:
-        reviews, match = fetch_reviews(store, app_ref, count=count, country=country)
+        reviews, match = fetch_reviews(
+            store, app_ref, count=count, country=country, lang=lang
+        )
     except FetchError as exc:
         console.print(f"[red]Fetch failed:[/red] {exc}")
         raise typer.Exit(code=1) from exc

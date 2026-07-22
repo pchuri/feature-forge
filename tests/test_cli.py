@@ -40,7 +40,7 @@ def test_analyze_store_requires_app() -> None:
 def test_fetch_command_saves(tmp_path, monkeypatch) -> None:
     out = tmp_path / "out.csv"
 
-    def fake_fetch(store, app_ref, count, country):
+    def fake_fetch(store, app_ref, count, country, lang):
         assert store is Store.GOOGLE_PLAY
         match = AppMatch("com.example", "Example App", Store.GOOGLE_PLAY)
         reviews = [Review(rating=2, body="This app is far too slow lately")]
@@ -55,3 +55,63 @@ def test_fetch_command_saves(tmp_path, monkeypatch) -> None:
     assert out.exists()
     assert "Example App" in result.output
     assert "Saved 1 review(s)" in result.output
+
+
+def test_fetch_command_passes_lang(tmp_path, monkeypatch) -> None:
+    out = tmp_path / "out.csv"
+    seen: dict[str, str] = {}
+
+    def fake_fetch(store, app_ref, count, country, lang):
+        seen["lang"] = lang
+        seen["country"] = country
+        match = AppMatch("jp.example", "Example App", Store.GOOGLE_PLAY)
+        return [Review(rating=1, body="通知が全く来なくなりました")], match
+
+    monkeypatch.setattr(cli, "fetch_reviews", fake_fetch)
+
+    result = runner.invoke(
+        app,
+        ["fetch", "google-play", "Example", "--country", "jp", "--lang", "ja", "-o", str(out)],
+    )
+    assert result.exit_code == 0
+    assert seen == {"lang": "ja", "country": "jp"}
+
+
+def test_analyze_command_passes_model(tmp_path, monkeypatch) -> None:
+    csv_path = tmp_path / "r.csv"
+    csv_path.write_text(
+        "rating,body\n1,Way too many ads in this app\n5,All good here thanks\n",
+        encoding="utf-8",
+    )
+
+    constructed: list[str] = []
+
+    class FakeEmbedder:
+        def __init__(self, model_name: str) -> None:
+            constructed.append(model_name)
+
+    def fake_analyze(reviews, idea, n_clusters, embedder):
+        assert isinstance(embedder, FakeEmbedder)
+        from feature_forge.analysis import build_summary
+        from feature_forge.models import AnalysisReport
+
+        return AnalysisReport(idea=idea, summary=build_summary(reviews), clusters=[])
+
+    monkeypatch.setattr(cli, "SentenceTransformerEmbedder", FakeEmbedder)
+    monkeypatch.setattr(cli, "analyze", fake_analyze)
+
+    result = runner.invoke(
+        app,
+        [
+            "analyze",
+            str(csv_path),
+            "--idea",
+            "X",
+            "--model",
+            "paraphrase-multilingual-MiniLM-L12-v2",
+            "-o",
+            str(tmp_path / "report.md"),
+        ],
+    )
+    assert result.exit_code == 0
+    assert constructed == ["paraphrase-multilingual-MiniLM-L12-v2"]
