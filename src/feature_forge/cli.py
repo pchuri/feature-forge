@@ -16,7 +16,7 @@ from feature_forge.loaders import load_reviews
 from feature_forge.models import AnalysisReport, Review
 from feature_forge.pipeline.clean import clean_reviews
 from feature_forge.pipeline.cluster import DEFAULT_N_CLUSTERS
-from feature_forge.pipeline.embed import DEFAULT_MODEL, SentenceTransformerEmbedder
+from feature_forge.pipeline.embed import DEFAULT_MODEL, EmbeddingError, make_embedder
 from feature_forge.report import render_markdown
 
 app = typer.Typer(
@@ -171,9 +171,11 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
         DEFAULT_MODEL,
         "--model",
         help=(
-            "sentence-transformers model used for embedding. For non-English "
-            "reviews use a multilingual model, e.g. "
-            "'paraphrase-multilingual-MiniLM-L12-v2'."
+            "Embedding model. A sentence-transformers name runs locally (for "
+            "non-English reviews try 'paraphrase-multilingual-MiniLM-L12-v2'); "
+            "'openai:<model>' (e.g. 'openai:text-embedding-3-small') uses the "
+            "OpenAI API instead — requires the 'openai' extra and "
+            "OPENAI_API_KEY, and sends review text to a paid external API."
         ),
     ),
     save: Path | None = typer.Option(
@@ -204,12 +206,12 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
         f"[bold]Embedding + clustering[/bold] {len(cleaned)} reviews "
         f"(k={min(clusters, len(cleaned))})... this may download a model on first run."
     )
-    report = analyze(
-        cleaned,
-        idea=idea,
-        n_clusters=clusters,
-        embedder=SentenceTransformerEmbedder(model),
-    )
+    try:
+        embedder = make_embedder(model)
+    except EmbeddingError as exc:
+        console.print(f"[red]Embedding setup failed:[/red] {exc}")
+        raise typer.Exit(code=1) from exc
+    report = analyze(cleaned, idea=idea, n_clusters=clusters, embedder=embedder)
 
     _print_cluster_table(report)
 

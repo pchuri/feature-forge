@@ -76,10 +76,11 @@ Open `report.md` to see the generated opportunity report.
 
 > **Scope.** Feature Forge can analyze a **local file** *or* **fetch reviews
 > straight from an app store** (Google Play / App Store) so you never have to
-> build a CSV by hand. All analysis runs locally — **no paid LLM API is
-> called.** Cluster summaries are extractive (top keywords + reviews closest to
-> the cluster centroid + simple heuristic labels). LLM-based summarization can be
-> layered on later.
+> build a CSV by hand. All analysis runs locally **by default** — no paid API
+> is called unless you explicitly opt in to OpenAI embeddings with
+> `--model openai:...`. Cluster summaries are extractive (top keywords + reviews
+> closest to the cluster centroid + simple heuristic labels). LLM-based
+> summarization can be layered on later.
 >
 > **App Store note.** App resolution (name → id) works, but Apple's public
 > customer-reviews RSS endpoint currently returns **empty for all apps** — a
@@ -116,6 +117,12 @@ You can also pass an explicit store id instead of a name (e.g.
 >   --model paraphrase-multilingual-MiniLM-L12-v2 \
 >   --idea "A lightweight chat-only messenger"
 > ```
+>
+> Alternatively, OpenAI embeddings are strong on multilingual input and need no
+> local model download. This is **opt-in**: it sends review text to a paid
+> external API. Install the extra (`uv sync --extra openai`), set
+> `OPENAI_API_KEY`, and pass `--model openai:text-embedding-3-small` (or bare
+> `openai:` for that default).
 
 To only download reviews (no analysis), use `fetch`:
 
@@ -140,7 +147,7 @@ feature-forge analyze [REVIEWS] --idea "<idea>" [--store <store> --app <name|id>
 | `--reviews` | `-n` | `500` | Max reviews to fetch. |
 | `--country` | | `us` | Store country/locale code. |
 | `--lang` | | `en` | Review language for Google Play (e.g. `ja`). Ignored for the App Store. |
-| `--model` | | `all-MiniLM-L6-v2` | sentence-transformers embedding model. Use a multilingual one for non-English reviews. |
+| `--model` | | `all-MiniLM-L6-v2` | Embedding model: a sentence-transformers name (local), or `openai:<model>` for the OpenAI API (needs the `openai` extra + `OPENAI_API_KEY`). |
 | `--save` | | — | Also save the fetched raw reviews to this `.csv`/`.json`. |
 | `--output` | `-o` | `report.md` | Where to write the Markdown report. |
 | `--clusters` | `-k` | `10` | Number of KMeans clusters to request. |

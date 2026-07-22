@@ -87,8 +87,11 @@ def test_analyze_command_passes_model(tmp_path, monkeypatch) -> None:
     constructed: list[str] = []
 
     class FakeEmbedder:
-        def __init__(self, model_name: str) -> None:
-            constructed.append(model_name)
+        pass
+
+    def fake_make_embedder(spec: str) -> FakeEmbedder:
+        constructed.append(spec)
+        return FakeEmbedder()
 
     def fake_analyze(reviews, idea, n_clusters, embedder):
         assert isinstance(embedder, FakeEmbedder)
@@ -97,7 +100,7 @@ def test_analyze_command_passes_model(tmp_path, monkeypatch) -> None:
 
         return AnalysisReport(idea=idea, summary=build_summary(reviews), clusters=[])
 
-    monkeypatch.setattr(cli, "SentenceTransformerEmbedder", FakeEmbedder)
+    monkeypatch.setattr(cli, "make_embedder", fake_make_embedder)
     monkeypatch.setattr(cli, "analyze", fake_analyze)
 
     result = runner.invoke(
@@ -115,3 +118,23 @@ def test_analyze_command_passes_model(tmp_path, monkeypatch) -> None:
     )
     assert result.exit_code == 0
     assert constructed == ["paraphrase-multilingual-MiniLM-L12-v2"]
+
+
+def test_analyze_command_reports_embedding_setup_errors(tmp_path, monkeypatch) -> None:
+    csv_path = tmp_path / "r.csv"
+    csv_path.write_text(
+        "rating,body\n1,Way too many ads in this app\n5,All good here thanks\n",
+        encoding="utf-8",
+    )
+
+    def failing_make_embedder(spec: str):
+        raise cli.EmbeddingError("OPENAI_API_KEY is not set.")
+
+    monkeypatch.setattr(cli, "make_embedder", failing_make_embedder)
+
+    result = runner.invoke(
+        app,
+        ["analyze", str(csv_path), "-i", "X", "--model", "openai:", "-o", str(tmp_path / "r.md")],
+    )
+    assert result.exit_code == 1
+    assert "Embedding setup failed" in result.output
