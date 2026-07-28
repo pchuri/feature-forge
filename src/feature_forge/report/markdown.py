@@ -10,18 +10,20 @@ SUPPORT_THRESHOLD = 45.0
 #: Minimum cosine similarity between the idea and a cluster centroid for the
 #: cluster to count as evidence about the idea at all. Below this, a cluster is
 #: real pain but *unrelated* pain — it says nothing about the idea. Heuristic,
-#: tuned for normalized sentence-transformer embeddings.
+#: tuned for normalized sentence-transformer embeddings; other embedders (e.g.
+#: OpenAI) or cross-language idea/review pairs shift the similarity
+#: distribution, so the threshold is overridable (``--relevance-threshold``).
 RELEVANCE_THRESHOLD = 0.3
 
 
-def _is_relevant(cluster: ClusterResult) -> bool:
+def _is_relevant(cluster: ClusterResult, threshold: float) -> bool:
     """Whether a cluster is semantically about the idea.
 
     Clusters without a similarity (reports produced before idea embedding
     existed, or built by hand) are treated as relevant for backward
     compatibility.
     """
-    return cluster.idea_similarity is None or cluster.idea_similarity >= RELEVANCE_THRESHOLD
+    return cluster.idea_similarity is None or cluster.idea_similarity >= threshold
 
 
 def _summary_section(summary: DatasetSummary) -> list[str]:
@@ -42,7 +44,7 @@ def _summary_section(summary: DatasetSummary) -> list[str]:
     return lines
 
 
-def _cluster_section(index: int, cluster: ClusterResult) -> list[str]:
+def _cluster_section(index: int, cluster: ClusterResult, threshold: float) -> list[str]:
     lines = [
         f"### {index}. {cluster.label}",
         "",
@@ -52,7 +54,7 @@ def _cluster_section(index: int, cluster: ClusterResult) -> list[str]:
         f"- Opportunity score: {cluster.opportunity_score:.1f} / 100",
     ]
     if cluster.idea_similarity is not None:
-        relevance = "relevant" if _is_relevant(cluster) else "unrelated"
+        relevance = "relevant" if _is_relevant(cluster, threshold) else "unrelated"
         lines.append(
             f"- Idea relevance: {cluster.idea_similarity:.2f} ({relevance} to the idea)"
         )
@@ -69,7 +71,7 @@ def _cluster_section(index: int, cluster: ClusterResult) -> list[str]:
     return lines
 
 
-def _hypothesis_section(report: AnalysisReport) -> list[str]:
+def _hypothesis_section(report: AnalysisReport, threshold: float) -> list[str]:
     lines = ["## Initial Product Hypothesis", ""]
 
     if not report.clusters:
@@ -80,7 +82,7 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
         lines.append("")
         return lines
 
-    relevant = [c for c in report.clusters if _is_relevant(c)]
+    relevant = [c for c in report.clusters if _is_relevant(c, threshold)]
     supporting = [c for c in relevant if c.opportunity_score >= SUPPORT_THRESHOLD]
 
     if not relevant:
@@ -94,7 +96,7 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
             "idea — absence of evidence is evidence."
         )
         lines.append("")
-        lines.append(_note_line())
+        lines.append(_note_line(threshold))
         lines.append("")
         return lines
 
@@ -124,7 +126,7 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
     excluded = [
         c
         for c in report.clusters
-        if not _is_relevant(c) and c.opportunity_score >= SUPPORT_THRESHOLD
+        if not _is_relevant(c, threshold) and c.opportunity_score >= SUPPORT_THRESHOLD
     ]
     if excluded:
         excluded_names = ", ".join(f"_{c.label}_" for c in excluded[:3])
@@ -138,23 +140,31 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
         "describe the problem, which you can mine for messaging and feature scope."
     )
     lines.append("")
-    lines.append(_note_line())
+    lines.append(_note_line(threshold))
     lines.append("")
     return lines
 
 
-def _note_line() -> str:
+def _note_line(threshold: float) -> str:
     return (
         "> Note: opportunity scores are heuristic (frequency + negativity) and "
-        "idea relevance is embedding cosine similarity — both prioritize where "
-        "to look, not replace reading the reviews. In particular, read the "
-        "relevant clusters' representative reviews to check whether the "
-        "negativity is demand *for* the idea or backlash *against* it."
+        "idea relevance is embedding cosine similarity — clusters with "
+        f"relevance ≥ {threshold:.2f} counted as related to the idea. Both "
+        "prioritize where to look, not replace reading the reviews. In "
+        "particular, read the relevant clusters' representative reviews to "
+        "check whether the negativity is demand *for* the idea or backlash "
+        "*against* it."
     )
 
 
-def render_markdown(report: AnalysisReport) -> str:
-    """Return the full Markdown document for ``report``."""
+def render_markdown(
+    report: AnalysisReport, relevance_threshold: float = RELEVANCE_THRESHOLD
+) -> str:
+    """Return the full Markdown document for ``report``.
+
+    ``relevance_threshold`` is the minimum idea/cluster cosine similarity for a
+    cluster to count as evidence about the idea (see :data:`RELEVANCE_THRESHOLD`).
+    """
     lines: list[str] = ["# Feature Forge Report", ""]
     lines += ["## Idea", "", report.idea, ""]
     lines += _summary_section(report.summary)
@@ -162,9 +172,9 @@ def render_markdown(report: AnalysisReport) -> str:
 
     if report.clusters:
         for i, cluster in enumerate(report.clusters, start=1):
-            lines += _cluster_section(i, cluster)
+            lines += _cluster_section(i, cluster, relevance_threshold)
     else:
         lines += ["No clusters were produced.", ""]
 
-    lines += _hypothesis_section(report)
+    lines += _hypothesis_section(report, relevance_threshold)
     return "\n".join(lines).rstrip() + "\n"

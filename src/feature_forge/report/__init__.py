@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from .markdown import render_markdown
+from .markdown import RELEVANCE_THRESHOLD, render_markdown
 
-__all__ = ["render_markdown"]
+__all__ = ["RELEVANCE_THRESHOLD", "render_markdown"]

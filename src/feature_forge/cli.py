@@ -17,7 +17,7 @@ from feature_forge.models import AnalysisReport, Review
 from feature_forge.pipeline.clean import clean_reviews
 from feature_forge.pipeline.cluster import DEFAULT_N_CLUSTERS
 from feature_forge.pipeline.embed import DEFAULT_MODEL, EmbeddingError, make_embedder
-from feature_forge.report import render_markdown
+from feature_forge.report import RELEVANCE_THRESHOLD, render_markdown
 
 app = typer.Typer(
     add_completion=False,
@@ -183,6 +183,19 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
         "--save",
         help="Also save the fetched raw reviews to this .csv/.json file.",
     ),
+    relevance_threshold: float = typer.Option(
+        RELEVANCE_THRESHOLD,
+        "--relevance-threshold",
+        min=-1.0,
+        max=1.0,
+        help=(
+            "Minimum idea/cluster cosine similarity for a cluster to count as "
+            "evidence about the idea. The default is tuned for local "
+            "sentence-transformer embeddings; other embedders or a cross-"
+            "language idea/review pair shift the similarity scale — check the "
+            "per-cluster 'Idea relevance' values in the report and adjust."
+        ),
+    ),
 ) -> None:
     """Analyze reviews (from a file or a store) and write a Markdown report."""
     reviews = _gather_reviews(input_file, store, app_ref, count, country, lang, save)
@@ -215,7 +228,10 @@ def analyze_command(  # noqa: PLR0913 - explicit CLI options read better flat
 
     _print_cluster_table(report)
 
-    output.write_text(render_markdown(report), encoding="utf-8")
+    output.write_text(
+        render_markdown(report, relevance_threshold=relevance_threshold),
+        encoding="utf-8",
+    )
     console.print(f"\n[green]Report written to[/green] {output}")
 
 

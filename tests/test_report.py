@@ -157,6 +157,19 @@ def test_verdict_weakly_supported_when_relevant_but_mild() -> None:
     assert "_Smart Reply, Translation_" in md
 
 
+def test_relevance_threshold_override_flips_verdict() -> None:
+    """A custom --relevance-threshold changes which clusters count as evidence."""
+    report = _report([_cluster(0, "Smart Reply, Translation", 50.0, idea_similarity=0.2)])
+
+    default_md = render_markdown(report)
+    assert "**not supported**" in default_md
+    assert "relevance ≥ 0.30" in default_md
+
+    tuned_md = render_markdown(report, relevance_threshold=0.15)
+    assert "appears **supported**" in tuned_md
+    assert "relevance ≥ 0.15" in tuned_md
+
+
 def test_cluster_section_shows_idea_relevance() -> None:
     md = render_markdown(
         _report([_cluster(0, "Smart Reply, Translation", 50.0, idea_similarity=0.62)])
