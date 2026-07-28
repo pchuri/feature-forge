@@ -55,8 +55,10 @@ def _cluster_section(index: int, cluster: ClusterResult, threshold: float) -> li
     ]
     if cluster.idea_similarity is not None:
         relevance = "relevant" if _is_relevant(cluster, threshold) else "unrelated"
+        # 3 decimals matches the stored precision the verdict compares against,
+        # so the displayed value never contradicts the relevant/unrelated call.
         lines.append(
-            f"- Idea relevance: {cluster.idea_similarity:.2f} ({relevance} to the idea)"
+            f"- Idea relevance: {cluster.idea_similarity:.3f} ({relevance} to the idea)"
         )
     if cluster.keywords:
         lines.append(f"- Top keywords: {', '.join(cluster.keywords)}")
@@ -84,19 +86,33 @@ def _hypothesis_section(report: AnalysisReport, threshold: float) -> list[str]:
 
     relevant = [c for c in report.clusters if _is_relevant(c, threshold)]
     supporting = [c for c in relevant if c.opportunity_score >= SUPPORT_THRESHOLD]
+    gated = any(c.idea_similarity is not None for c in report.clusters)
 
     if not relevant:
         top_unrelated = ", ".join(f"_{c.label}_" for c in report.clusters[:3])
+        strong_pain = any(
+            c.opportunity_score >= SUPPORT_THRESHOLD for c in report.clusters
+        )
+        if strong_pain:
+            body = (
+                "the dominant pain points are unrelated to the idea. The top "
+                f"clusters ({top_unrelated}) concern other problems, and no "
+                "cluster semantically related to the idea rose above the noise. "
+                "Real pain exists in this market, but it is not evidence for "
+                "this idea — absence of evidence is evidence."
+            )
+        else:
+            body = (
+                "no cluster is semantically related to the idea, and none "
+                f"shows strong pain either (top clusters: {top_unrelated}). "
+                "Absence of evidence is evidence."
+            )
         lines.append(
-            f"The idea **\"{report.idea}\"** is **not supported** by this review "
-            "data: the dominant pain points are unrelated to the idea. The "
-            f"top clusters ({top_unrelated}) concern other problems, and no "
-            "cluster semantically related to the idea rose above the noise. "
-            "Real pain exists in this market, but it is not evidence for this "
-            "idea — absence of evidence is evidence."
+            f"The idea **\"{report.idea}\"** is **not supported** by this "
+            f"review data: {body}"
         )
         lines.append("")
-        lines.append(_note_line(threshold))
+        lines.append(_note_line(threshold, gated))
         lines.append("")
         return lines
 
@@ -140,16 +156,23 @@ def _hypothesis_section(report: AnalysisReport, threshold: float) -> list[str]:
         "describe the problem, which you can mine for messaging and feature scope."
     )
     lines.append("")
-    lines.append(_note_line(threshold))
+    lines.append(_note_line(threshold, gated))
     lines.append("")
     return lines
 
 
-def _note_line(threshold: float) -> str:
+def _note_line(threshold: float, gated: bool) -> str:
+    """The closing caveat; only claims relevance gating when it actually ran."""
+    if not gated:
+        return (
+            "> Note: opportunity scores are heuristic (frequency + negativity) "
+            "and meant to prioritize where to look, not to replace reading the "
+            "reviews."
+        )
     return (
         "> Note: opportunity scores are heuristic (frequency + negativity) and "
         "idea relevance is embedding cosine similarity — clusters with "
-        f"relevance ≥ {threshold:.2f} counted as related to the idea. Both "
+        f"relevance ≥ {threshold:.3f} counted as related to the idea. Both "
         "prioritize where to look, not replace reading the reviews. In "
         "particular, read the relevant clusters' representative reviews to "
         "check whether the negativity is demand *for* the idea or backlash "

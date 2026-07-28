@@ -163,18 +163,48 @@ def test_relevance_threshold_override_flips_verdict() -> None:
 
     default_md = render_markdown(report)
     assert "**not supported**" in default_md
-    assert "relevance ≥ 0.30" in default_md
+    assert "relevance ≥ 0.300" in default_md
 
     tuned_md = render_markdown(report, relevance_threshold=0.15)
     assert "appears **supported**" in tuned_md
-    assert "relevance ≥ 0.15" in tuned_md
+    assert "relevance ≥ 0.150" in tuned_md
 
 
 def test_cluster_section_shows_idea_relevance() -> None:
     md = render_markdown(
         _report([_cluster(0, "Smart Reply, Translation", 50.0, idea_similarity=0.62)])
     )
-    assert "Idea relevance: 0.62 (relevant to the idea)" in md
+    assert "Idea relevance: 0.620 (relevant to the idea)" in md
+
+
+def test_displayed_relevance_never_contradicts_the_call() -> None:
+    """A similarity just under the cutoff must not display as equal to it."""
+    md = render_markdown(_report([_cluster(0, "Smart Reply", 50.0, idea_similarity=0.296)]))
+    assert "Idea relevance: 0.296 (unrelated to the idea)" in md
+    assert "relevance ≥ 0.300" in md
+
+
+def test_not_supported_without_strong_pain_does_not_claim_pain() -> None:
+    """With only mild, unrelated clusters the report must not assert real pain exists."""
+    md = render_markdown(
+        _report(
+            [
+                _cluster(0, "Stickers Fun", 8.0, idea_similarity=0.05, negative_ratio=0.1),
+                _cluster(1, "Great Calls", 5.0, idea_similarity=0.10, negative_ratio=0.0),
+            ]
+        )
+    )
+    assert "**not supported**" in md
+    assert "none shows strong pain either" in md
+    assert "Real pain exists" not in md
+
+
+def test_note_omits_relevance_clause_for_legacy_reports() -> None:
+    """Reports without similarity data must not claim relevance gating happened."""
+    md = render_markdown(_report([_cluster(0, "Slow, Pdf", 70.0, idea_similarity=None)]))
+    assert "appears **supported**" in md
+    assert "relevance ≥" not in md
+    assert "Idea relevance" not in md
 
 
 def test_analyze_attaches_idea_similarity(sample_reviews, fake_embedder) -> None:

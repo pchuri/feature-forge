@@ -120,6 +120,61 @@ def test_analyze_command_passes_model(tmp_path, monkeypatch) -> None:
     assert constructed == ["paraphrase-multilingual-MiniLM-L12-v2"]
 
 
+def test_analyze_command_passes_relevance_threshold(tmp_path, monkeypatch) -> None:
+    """--relevance-threshold must reach render_markdown and change the verdict."""
+    csv_path = tmp_path / "r.csv"
+    csv_path.write_text(
+        "rating,body\n1,Way too many ads in this app\n5,All good here thanks\n",
+        encoding="utf-8",
+    )
+    report_path = tmp_path / "report.md"
+
+    def fake_analyze(reviews, idea, n_clusters, embedder):
+        from feature_forge.analysis import build_summary
+        from feature_forge.models import AnalysisReport, ClusterResult
+
+        cluster = ClusterResult(
+            cluster_id=0,
+            label="Smart Reply",
+            size=2,
+            avg_rating=1.5,
+            negative_ratio=0.9,
+            opportunity_score=60.0,
+            idea_similarity=0.2,
+        )
+        return AnalysisReport(
+            idea=idea, summary=build_summary(reviews), clusters=[cluster]
+        )
+
+    monkeypatch.setattr(cli, "make_embedder", lambda spec: object())
+    monkeypatch.setattr(cli, "analyze", fake_analyze)
+
+    base_args = ["analyze", str(csv_path), "--idea", "X", "-o", str(report_path)]
+
+    result = runner.invoke(app, base_args)
+    assert result.exit_code == 0
+    md = report_path.read_text(encoding="utf-8")
+    assert "**not supported**" in md  # 0.2 < default cutoff 0.3
+
+    result = runner.invoke(app, [*base_args, "--relevance-threshold", "0.15"])
+    assert result.exit_code == 0
+    md = report_path.read_text(encoding="utf-8")
+    assert "appears **supported**" in md
+    assert "relevance ≥ 0.150" in md
+
+
+def test_analyze_command_rejects_out_of_range_relevance_threshold(tmp_path) -> None:
+    csv_path = tmp_path / "r.csv"
+    csv_path.write_text(
+        "rating,body\n1,Way too many ads in this app\n", encoding="utf-8"
+    )
+    result = runner.invoke(
+        app,
+        ["analyze", str(csv_path), "--idea", "X", "--relevance-threshold", "2.0"],
+    )
+    assert result.exit_code == 2
+
+
 def test_analyze_command_reports_embedding_setup_errors(tmp_path, monkeypatch) -> None:
     csv_path = tmp_path / "r.csv"
     csv_path.write_text(

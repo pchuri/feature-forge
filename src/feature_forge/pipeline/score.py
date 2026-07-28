@@ -105,6 +105,9 @@ def score_clusters(
         keywords = _extract_keywords([r.text for r in members])
         centroid = assignment.centroids[cluster_id]
         representatives = _representative_reviews(members, member_embeddings, centroid)
+        # Rounded to 3 decimals on purpose: the report displays, and the verdict
+        # compares, this stored value — one precision everywhere keeps the
+        # relevant/unrelated call reproducible from the report alone.
         idea_similarity = (
             round(_idea_similarity(centroid, idea_embedding), 3)
             if idea_embedding is not None
