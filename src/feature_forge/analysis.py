@@ -45,7 +45,10 @@ def analyze(
     if not reviews:
         return AnalysisReport(idea=idea, summary=summary, clusters=[])
 
-    embeddings = embed_texts([r.text for r in reviews], embedder=embedder)
+    # Embed the idea together with the reviews so both live in the same
+    # embedding space; clusters can then be checked for relevance to the idea.
+    vectors = embed_texts([idea] + [r.text for r in reviews], embedder=embedder)
+    idea_embedding, embeddings = vectors[0], vectors[1:]
     assignment = cluster_embeddings(embeddings, n_clusters=n_clusters)
-    clusters = score_clusters(reviews, embeddings, assignment)
+    clusters = score_clusters(reviews, embeddings, assignment, idea_embedding=idea_embedding)
     return AnalysisReport(idea=idea, summary=summary, clusters=clusters)

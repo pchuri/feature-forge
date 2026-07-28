@@ -84,6 +84,96 @@ def test_render_markdown_contains_all_sections() -> None:
     assert "supported" in md.lower()
 
 
+def _cluster(
+    cluster_id: int,
+    label: str,
+    opportunity_score: float,
+    idea_similarity: float | None,
+    negative_ratio: float = 0.8,
+) -> ClusterResult:
+    return ClusterResult(
+        cluster_id=cluster_id,
+        label=label,
+        size=10,
+        avg_rating=1.9,
+        negative_ratio=negative_ratio,
+        opportunity_score=opportunity_score,
+        idea_similarity=idea_similarity,
+    )
+
+
+def _report(
+    clusters: list[ClusterResult], idea: str = "AI-powered smart replies"
+) -> AnalysisReport:
+    return AnalysisReport(
+        idea=idea,
+        summary=DatasetSummary(total_reviews=50, average_rating=2.1, negative_count=30),
+        clusters=clusters,
+    )
+
+
+def test_verdict_not_supported_when_top_clusters_unrelated() -> None:
+    """High-scoring clusters that are semantically unrelated must not support the idea."""
+    md = render_markdown(
+        _report(
+            [
+                _cluster(0, "Login, Phone Number", 70.0, idea_similarity=0.05),
+                _cluster(1, "Account, Verification", 55.0, idea_similarity=0.10),
+            ]
+        )
+    )
+    assert "**not supported**" in md
+    assert "unrelated to the idea" in md
+    assert "absence of evidence is evidence" in md
+    assert "appears **supported**" not in md
+
+
+def test_verdict_supported_only_by_relevant_clusters() -> None:
+    """An unrelated top scorer is excluded; the relevant cluster drives the verdict."""
+    md = render_markdown(
+        _report(
+            [
+                _cluster(0, "Login, Phone Number", 70.0, idea_similarity=0.05),
+                _cluster(1, "Smart Reply, Translation", 50.0, idea_similarity=0.62),
+            ]
+        )
+    )
+    assert "appears **supported**" in md
+    assert "strongest idea-relevant signal is the cluster _Smart Reply, Translation_" in md
+    assert "_Login, Phone Number_" in md  # named as excluded
+    assert "excluded from the verdict" in md
+
+
+def test_verdict_weakly_supported_when_relevant_but_mild() -> None:
+    md = render_markdown(
+        _report(
+            [
+                _cluster(0, "Login, Phone Number", 70.0, idea_similarity=0.05),
+                _cluster(1, "Smart Reply, Translation", 30.0, idea_similarity=0.62),
+            ]
+        )
+    )
+    assert "**weakly supported**" in md
+    assert "_Smart Reply, Translation_" in md
+
+
+def test_cluster_section_shows_idea_relevance() -> None:
+    md = render_markdown(
+        _report([_cluster(0, "Smart Reply, Translation", 50.0, idea_similarity=0.62)])
+    )
+    assert "Idea relevance: 0.62 (relevant to the idea)" in md
+
+
+def test_analyze_attaches_idea_similarity(sample_reviews, fake_embedder) -> None:
+    report = analyze(
+        sample_reviews, idea="PDF to Image converter", n_clusters=3, embedder=fake_embedder
+    )
+    assert report.clusters
+    for cluster in report.clusters:
+        assert cluster.idea_similarity is not None
+        assert -1.0 <= cluster.idea_similarity <= 1.0
+
+
 def test_render_markdown_no_clusters() -> None:
     report = AnalysisReport(
         idea="Some idea",

@@ -7,6 +7,22 @@ from feature_forge.models import AnalysisReport, ClusterResult, DatasetSummary
 #: Clusters at or above this opportunity score are read as "supporting" the idea.
 SUPPORT_THRESHOLD = 45.0
 
+#: Minimum cosine similarity between the idea and a cluster centroid for the
+#: cluster to count as evidence about the idea at all. Below this, a cluster is
+#: real pain but *unrelated* pain — it says nothing about the idea. Heuristic,
+#: tuned for normalized sentence-transformer embeddings.
+RELEVANCE_THRESHOLD = 0.3
+
+
+def _is_relevant(cluster: ClusterResult) -> bool:
+    """Whether a cluster is semantically about the idea.
+
+    Clusters without a similarity (reports produced before idea embedding
+    existed, or built by hand) are treated as relevant for backward
+    compatibility.
+    """
+    return cluster.idea_similarity is None or cluster.idea_similarity >= RELEVANCE_THRESHOLD
+
 
 def _summary_section(summary: DatasetSummary) -> list[str]:
     lines = [
@@ -35,6 +51,11 @@ def _cluster_section(index: int, cluster: ClusterResult) -> list[str]:
         f"- Negative ratio: {cluster.negative_ratio:.0%}",
         f"- Opportunity score: {cluster.opportunity_score:.1f} / 100",
     ]
+    if cluster.idea_similarity is not None:
+        relevance = "relevant" if _is_relevant(cluster) else "unrelated"
+        lines.append(
+            f"- Idea relevance: {cluster.idea_similarity:.2f} ({relevance} to the idea)"
+        )
     if cluster.keywords:
         lines.append(f"- Top keywords: {', '.join(cluster.keywords)}")
     lines.append("- Representative reviews:")
@@ -59,8 +80,25 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
         lines.append("")
         return lines
 
-    top = report.clusters[0]
-    supporting = [c for c in report.clusters if c.opportunity_score >= SUPPORT_THRESHOLD]
+    relevant = [c for c in report.clusters if _is_relevant(c)]
+    supporting = [c for c in relevant if c.opportunity_score >= SUPPORT_THRESHOLD]
+
+    if not relevant:
+        top_unrelated = ", ".join(f"_{c.label}_" for c in report.clusters[:3])
+        lines.append(
+            f"The idea **\"{report.idea}\"** is **not supported** by this review "
+            "data: the dominant pain points are unrelated to the idea. The "
+            f"top clusters ({top_unrelated}) concern other problems, and no "
+            "cluster semantically related to the idea rose above the noise. "
+            "Real pain exists in this market, but it is not evidence for this "
+            "idea — absence of evidence is evidence."
+        )
+        lines.append("")
+        lines.append(_note_line())
+        lines.append("")
+        return lines
+
+    top = supporting[0] if supporting else relevant[0]
 
     if supporting:
         verdict = (
@@ -69,13 +107,13 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
     else:
         verdict = (
             f"The idea **\"{report.idea}\"** is **weakly supported** by the review "
-            "data; pain points exist but are diffuse or mild."
+            "data; pain points related to the idea exist but are diffuse or mild."
         )
 
     lines.append(verdict)
     lines.append("")
     lines.append(
-        f"The strongest signal is the cluster _{top.label}_ "
+        f"The strongest idea-relevant signal is the cluster _{top.label}_ "
         f"({top.size} reviews, {top.negative_ratio:.0%} negative, opportunity "
         f"score {top.opportunity_score:.1f}). "
     )
@@ -83,17 +121,36 @@ def _hypothesis_section(report: AnalysisReport) -> list[str]:
         others = ", ".join(f"_{c.label}_" for c in supporting[1:4])
         if others:
             lines[-1] += f"Other supporting clusters include {others}. "
+    excluded = [
+        c
+        for c in report.clusters
+        if not _is_relevant(c) and c.opportunity_score >= SUPPORT_THRESHOLD
+    ]
+    if excluded:
+        excluded_names = ", ".join(f"_{c.label}_" for c in excluded[:3])
+        lines[-1] += (
+            f"High-scoring but unrelated clusters ({excluded_names}) were "
+            "excluded from the verdict — they are real pain, but not evidence "
+            "for this idea. "
+        )
     lines[-1] += (
         "Representative reviews above show the concrete language users use to "
         "describe the problem, which you can mine for messaging and feature scope."
     )
     lines.append("")
-    lines.append(
-        "> Note: opportunity scores are heuristic (frequency + negativity) and "
-        "meant to prioritize where to look, not to replace reading the reviews."
-    )
+    lines.append(_note_line())
     lines.append("")
     return lines
+
+
+def _note_line() -> str:
+    return (
+        "> Note: opportunity scores are heuristic (frequency + negativity) and "
+        "idea relevance is embedding cosine similarity — both prioritize where "
+        "to look, not replace reading the reviews. In particular, read the "
+        "relevant clusters' representative reviews to check whether the "
+        "negativity is demand *for* the idea or backlash *against* it."
+    )
 
 
 def render_markdown(report: AnalysisReport) -> str:
