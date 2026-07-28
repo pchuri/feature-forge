@@ -60,6 +60,14 @@ def _opportunity_score(size: int, total: int, negative_ratio: float) -> float:
     return round(raw * 100, 1)
 
 
+def _idea_similarity(centroid: np.ndarray, idea_embedding: np.ndarray) -> float:
+    """Cosine similarity between a cluster centroid and the embedded idea."""
+    denom = float(np.linalg.norm(centroid) * np.linalg.norm(idea_embedding))
+    if denom == 0.0:
+        return 0.0
+    return float(np.dot(centroid, idea_embedding) / denom)
+
+
 def _heuristic_label(keywords: list[str]) -> str:
     if not keywords:
         return "Uncategorized feedback"
@@ -70,8 +78,15 @@ def score_clusters(
     reviews: list[Review],
     embeddings: np.ndarray,
     assignment: ClusterAssignment,
+    idea_embedding: np.ndarray | None = None,
 ) -> list[ClusterResult]:
-    """Build a scored :class:`ClusterResult` for each cluster, best first."""
+    """Build a scored :class:`ClusterResult` for each cluster, best first.
+
+    When ``idea_embedding`` is given (a vector in the same embedding space as
+    ``embeddings``), each cluster also gets an ``idea_similarity`` — the cosine
+    similarity between its centroid and the idea — so downstream consumers can
+    tell which clusters are actually about the idea being validated.
+    """
     total = len(reviews)
     results: list[ClusterResult] = []
 
@@ -88,8 +103,15 @@ def score_clusters(
         negative_ratio = negative_count / len(members)
 
         keywords = _extract_keywords([r.text for r in members])
-        representatives = _representative_reviews(
-            members, member_embeddings, assignment.centroids[cluster_id]
+        centroid = assignment.centroids[cluster_id]
+        representatives = _representative_reviews(members, member_embeddings, centroid)
+        # Rounded to 3 decimals on purpose: the report displays, and the verdict
+        # compares, this stored value — one precision everywhere keeps the
+        # relevant/unrelated call reproducible from the report alone.
+        idea_similarity = (
+            round(_idea_similarity(centroid, idea_embedding), 3)
+            if idea_embedding is not None
+            else None
         )
 
         results.append(
@@ -100,6 +122,7 @@ def score_clusters(
                 avg_rating=round(float(ratings.mean()), 2),
                 negative_ratio=round(negative_ratio, 3),
                 opportunity_score=_opportunity_score(len(members), total, negative_ratio),
+                idea_similarity=idea_similarity,
                 keywords=keywords,
                 representative_reviews=representatives,
             )

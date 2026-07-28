@@ -123,6 +123,12 @@ You can also pass an explicit store id instead of a name (e.g.
 > external API. Install the extra (`uv sync --extra openai`), set
 > `OPENAI_API_KEY`, and pass `--model openai:text-embedding-3-small` (or bare
 > `openai:` for that default).
+>
+> Either way, cosine-similarity scales differ across embedders and across
+> languages (e.g. an English idea vs Japanese reviews scores lower even when
+> related), so the hypothesis verdict's relevance cutoff may need tuning: check
+> the per-cluster `Idea relevance` values in the report and adjust
+> `--relevance-threshold` (default `0.3`).
 
 To only download reviews (no analysis), use `fetch`:
 
@@ -151,6 +157,7 @@ feature-forge analyze [REVIEWS] --idea "<idea>" [--store <store> --app <name|id>
 | `--save` | | — | Also save the fetched raw reviews to this `.csv`/`.json`. |
 | `--output` | `-o` | `report.md` | Where to write the Markdown report. |
 | `--clusters` | `-k` | `10` | Number of KMeans clusters to request. |
+| `--relevance-threshold` | | `0.3` | Minimum idea/cluster cosine similarity for a cluster to count as evidence about the idea. Tuned for local sentence-transformer embeddings; with OpenAI embeddings or a cross-language idea/review pair, check the per-cluster `Idea relevance` values in the report and adjust. |
 
 Provide **either** a `REVIEWS` file **or** `--store`/`--app`, not both.
 

@@ -46,6 +46,15 @@ class ClusterResult(BaseModel):
     avg_rating: float
     negative_ratio: float
     opportunity_score: float
+    idea_similarity: float | None = Field(
+        default=None,
+        ge=-1.0,
+        le=1.0,
+        description=(
+            "Cosine similarity between the cluster centroid and the embedded "
+            "idea text; None when no idea embedding was available."
+        ),
+    )
     keywords: list[str] = Field(default_factory=list)
     representative_reviews: list[str] = Field(default_factory=list)
 
